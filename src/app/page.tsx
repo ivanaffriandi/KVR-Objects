@@ -1,107 +1,23 @@
-"use client";
+import HomeClient from "@/components/HomeClient";
+import { client } from "@/sanity/lib/client";
 
-import { useEffect } from "react";
+export const dynamic = 'force-dynamic'
 
-export default function Home() {
-  useEffect(() => {
-    // Custom Cursor tracking
-    const cursor = document.querySelector('.custom-cursor') as HTMLElement;
-    const hoverElements = document.querySelectorAll('a, .grid-item, button, .hero-image-wrapper');
+// GROQ query to fetch products
+const PRODUCTS_QUERY = `*[_type == "product"]{
+  _id,
+  title,
+  weight,
+  "image": image.asset->url,
+  type,
+  alt
+}`;
 
-    const moveCursor = (e: MouseEvent) => {
-      if (cursor) {
-        cursor.style.left = e.clientX + 'px';
-        cursor.style.top = e.clientY + 'px';
-      }
-    };
-
-    document.addEventListener('mousemove', moveCursor);
-
-    const addHover = () => cursor?.classList.add('hover');
-    const removeHover = () => cursor?.classList.remove('hover');
-
-    hoverElements.forEach(el => {
-      el.addEventListener('mouseenter', addHover);
-      el.addEventListener('mouseleave', removeHover);
-    });
-
-    // Simple Parallax & Scroll Reveal
-    const parallaxImg = document.querySelector('.parallax-img') as HTMLElement;
-    const heroSection = document.querySelector('.hero-section') as HTMLElement;
-    
-    // Set initial state for reveal items
-    const revealItems = document.querySelectorAll('.grid-item');
-    revealItems.forEach(item => {
-      const el = item as HTMLElement;
-      // Exclude the text block from the translation reveal if needed, but original did it to all .grid-item
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(80px)';
-      el.style.transition = 'opacity 1s ease-out, transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
-    });
-
-    const scrollHandler = () => {
-      const scrolled = window.scrollY;
-      
-      // Parallax
-      if (parallaxImg && heroSection) {
-        if (scrolled < heroSection.offsetHeight) {
-          parallaxImg.style.transform = `translateY(${scrolled * 0.15}px)`;
-        }
-      }
-      
-      // Reveal elements
-      revealItems.forEach(item => {
-        const el = item as HTMLElement;
-        const itemTop = el.getBoundingClientRect().top;
-        if (itemTop < window.innerHeight - 100) {
-          el.style.opacity = '1';
-          el.style.transform = 'translateY(0)';
-        }
-      });
-    };
-
-    const onScroll = () => {
-      window.requestAnimationFrame(scrollHandler);
-    };
-
-    window.addEventListener('scroll', onScroll);
-    
-    // Trigger once on load
-    scrollHandler();
-
-    return () => {
-      document.removeEventListener('mousemove', moveCursor);
-      hoverElements.forEach(el => {
-        el.removeEventListener('mouseenter', addHover);
-        el.removeEventListener('mouseleave', removeHover);
-      });
-      window.removeEventListener('scroll', onScroll);
-    };
-  }, []);
-
-  // Dynamic Product Data array makes it easy to add/change items and content
-  // Allows the site to be "dynamic" for the user to manage
-  const products = [
-    {
-      id: 1,
-      type: 'large',
-      title: 'Pendant 001',
-      weight: '0.13g — 99% Ag',
-      image: '/assets/charm_1.png',
-      alt: 'Silver Charm 01'
-    },
-    {
-      id: 2,
-      type: 'medium offset-up',
-      title: 'Ring Charm 002',
-      weight: '0.09g — 99% Ag',
-      image: '/assets/charm_2.png',
-      alt: 'Silver Ring Charm 02'
-    }
-  ];
+export default async function Home() {
+  const products = await client.fetch(PRODUCTS_QUERY, {}, { cache: 'no-store' });
 
   return (
-    <>
+    <HomeClient>
       <div className="custom-cursor"></div>
 
       <nav className="navbar">
@@ -137,31 +53,30 @@ export default function Home() {
 
         <section className="product-grid">
           <div className="grid-container">
-            {/* Dynamic Product Loop (currently mapped explicitly to preserve the asymmetric layout) */}
-            <div className={`grid-item ${products[0].type}`}>
-              <div className="img-container">
-                <img src={products[0].image} alt={products[0].alt} />
+            {products.length > 0 ? (
+              products.map((product: any, index: number) => (
+                <div key={product._id} className={`grid-item ${product.type || 'large'}`}>
+                  <div className="img-container">
+                    <img src={product.image} alt={product.alt || product.title} />
+                  </div>
+                  <div className="item-meta">
+                    <span>{product.title}</span>
+                    <span>{product.weight}</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="grid-item text-block">
+                <p>No products found. Start adding them in the <a href="/admin">Sanity Studio</a>.</p>
               </div>
-              <div className="item-meta">
-                <span>{products[0].title}</span>
-                <span>{products[0].weight}</span>
-              </div>
-            </div>
+            )}
             
-            {/* Center Text Block */}
-            <div className="grid-item empty text-block">
-              <p>EMBRACING THE WABI-SABI AESTHETIC.<br/>IMPERFECT PERFECTION IN EVERY PIECE.</p>
-            </div>
-            
-            <div className={`grid-item ${products[1].type}`}>
-              <div className="img-container">
-                <img src={products[1].image} alt={products[1].alt} />
+            {/* Center Text Block - Keep it hardcoded for aesthetics if no items or between items */}
+            {products.length > 0 && products.length < 2 && (
+              <div className="grid-item empty text-block">
+                <p>EMBRACING THE WABI-SABI AESTHETIC.<br/>IMPERFECT PERFECTION IN EVERY PIECE.</p>
               </div>
-              <div className="item-meta">
-                <span>{products[1].title}</span>
-                <span>{products[1].weight}</span>
-              </div>
-            </div>
+            )}
           </div>
         </section>
 
@@ -195,6 +110,6 @@ export default function Home() {
           <span>ALL RIGHTS RESERVED.</span>
         </div>
       </footer>
-    </>
+    </HomeClient>
   );
 }
