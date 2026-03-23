@@ -14,7 +14,7 @@ const PRODUCTS_QUERY = `*[_type == "product"]{
 }`;
 
 export default async function Home() {
-  const products = await client.fetch(PRODUCTS_QUERY, {}, { cache: 'no-store' });
+  const products = await client.fetch(PRODUCTS_QUERY, {}, { next: { revalidate: 0 } });
 
   return (
     <HomeClient>

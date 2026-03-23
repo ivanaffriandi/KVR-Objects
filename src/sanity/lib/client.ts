@@ -9,8 +9,4 @@ export const client = createClient({
   useCdn: false,
   token,
   perspective: token ? 'previewDrafts' : 'published',
-  stega: {
-    enabled: process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview',
-    studioUrl: '/admin',
-  },
 })
